@@ -152,9 +152,8 @@ The `Peer` class will represent a peer in the network. It will have the followin
   - `topics`: an array of topics that the peer is subscribed to.
 
 - Methods:
-  - `joinTopic(topic)`: a method that will make the peer join a topic by adding it to the `topics` array and maintaining the peerlist for the topic.
-  - `leaveTopic(topic)`: a method that will make the peer leave a topic by removing it from the `topics` array and stopping maintaining the peerlist for the topic.
-  - `listen(topic, handler)`: a method that will make the peer listen to events on a topic by adding an rpc request handler with the topic as the method's name.
+  - `listen(topic, handler)`: a method that will make the peer listen to events on a topic by adding an rpc request handler with the topic as the method's name as well as joining the swarm topic to discover peers in the topic.
+  - `leave(topic)`: a method that will make the peer leave a topic by removing the rpc request handler with the topic as the method's name and leaving the swarm topic.
   - `broadcast(topic, event)`: a method that will make the peer broadcast an event to a topic by sending an rpc request with the topic as the method's name and the event as the payload to all peers in the peerlist of the topic.
   - `syncState()`: a method that will make the peer sync its `hyperbee` instance with the `hyperbee` instances of other peers in the network.
 

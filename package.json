@@ -4,15 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "bootstrap:start": "./scripts/bootstrap-node.sh"
+    "test": "brittle ./tests/*.js",
+    "bootstrap:start": "./scripts/bootstrap-node.sh",
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@hyperswarm/rpc": "^3.3.2",
+    "brittle": "^3.5.0",
     "hyperbee": "^2.18.2",
     "hypercore": "^10.34.1",
-    "hyperdht": "^6.13.1"
+    "hypercore-crypto": "^3.4.0",
+    "hyperdht": "^6.13.1",
+    "hyperswarm": "^4.7.14",
+    "mocha": "^10.3.0"
+  },
+  "type": "module",
+  "imports": {
+    "#core/*": "./core/*.js"
   }
 }

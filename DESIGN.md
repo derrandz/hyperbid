@@ -152,10 +152,27 @@ The `Peer` class will represent a peer in the network. It will have the followin
   - `topics`: an array of topics that the peer is subscribed to.
 
 - Methods:
+  - `start()` : a method that will start the peer by joining the swarm and syncing the state of the network.
   - `listen(topic, handler)`: a method that will make the peer listen to events on a topic by adding an rpc request handler with the topic as the method's name as well as joining the swarm topic to discover peers in the topic.
   - `leave(topic)`: a method that will make the peer leave a topic by removing the rpc request handler with the topic as the method's name and leaving the swarm topic.
   - `broadcast(topic, event)`: a method that will make the peer broadcast an event to a topic by sending an rpc request with the topic as the method's name and the event as the payload to all peers in the peerlist of the topic.
   - `syncState()`: a method that will make the peer sync its `hyperbee` instance with the `hyperbee` instances of other peers in the network.
+
+#### State
+
+The `State` class will represent the state of the peer in the auction app. It will have the following properties and methods:
+
+- Properties:
+
+  - `auctions`: a key-value store where the key is the auction id and the value is the auction object.
+  - `bids`: a key-value store where the key is the bid id and the value is the bid object.
+
+- Methods:
+
+  - `addAuction(auction)`: a method that will add an auction to the state.
+  - `getAuction(auctionId)`: a method that will get an auction from the state.
+  - `addBid(bid)`: a method that will add a bid to the state.
+  - `getBid(bidId)`: a method that will get a bid from the state.
 
 #### App
 
@@ -163,7 +180,8 @@ The `App` class will represent the application that will deal with state and man
 
 - Properties:
 
-  - `network`: a `Network` instance that will represent the network of peers.
+  - `peer`: a `Peer` instance that will represent the peer in the network.
+  - `state`: an object that will store the state of the network.
 
 - Methods:
   - `openAuction(auction)`: a method that will open an auction by creating an auction instance on the `hyperbee` instance of the peer and broadcasting an `auction_opened` event to the network.

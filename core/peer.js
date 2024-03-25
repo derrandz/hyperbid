@@ -1,4 +1,4 @@
-import { createDHT, createSwarm, createRPC, getSeed, to32ByteBuffer } from "#core/utils";
+import { createDHT, createSwarm, createRPC, getSeed, to32ByteBuffer, isNullOrUndefined } from "#core/utils";
 
 export async function createPeer({ port, seed, bootstrap }, opts) {
   if (seed === null || typeof seed === undefined || seed === "") {
@@ -19,7 +19,7 @@ export class Peer {
     this.dht = dht;
     this.swarm = swarm;
     this.rpc = rpc;
-    this.db = db;
+    this.db = null;
     this.topics = [];
     this.log = noop;
     this.rpcPeers = new Map();
@@ -28,7 +28,7 @@ export class Peer {
 
     // TODO: add db stuff here
 
-    if (!isNullOrUndefiend(opts)) {
+    if (!isNullOrUndefined(opts)) {
       if (typeof opts.log === "function") {
         this.log = opts.log;
       }
@@ -68,7 +68,7 @@ export class Peer {
   async stop() {
     for (let topic of this.topics) {
       const disc = this._getTopicDiscoveryInfo(topic);
-      if (!isNullOrUndefiend(disc)) {
+      if (!isNullOrUndefined(disc)) {
         await this.leave(topic);
       }
     }
@@ -82,7 +82,7 @@ export class Peer {
 
   async listen(topic, handler) {
     const topicDisc = this._getTopicDiscoveryInfo(topic);
-    if (!isNullOrUndefiend(topicDisc)) {
+    if (!isNullOrUndefined(topicDisc)) {
       throw new Error("cannot listen to topic twice, already listening to topic");
     }
 
@@ -91,7 +91,7 @@ export class Peer {
   }
 
   async _joinSwarmTopic(topic) {
-    if (isNullOrUndefiend(this.swarm)) {
+    if (isNullOrUndefined(this.swarm)) {
       throw new Error("malinitialized instance: swarm is not defined");
     }
 
@@ -105,7 +105,7 @@ export class Peer {
   }
 
   _handleRPCTopic(topic, handler) {
-    if (isNullOrUndefiend(this._rpcServer)) {
+    if (isNullOrUndefined(this._rpcServer)) {
       throw new Error("malinitialized instance: rpc server is not defined");
     }
 
@@ -130,7 +130,7 @@ export class Peer {
 
   async _leaveSwarmTopic(topic) {
     const topicDisc = this._getTopicDiscoveryInfo(topic);
-    if (isNullOrUndefiend(topicDisc)) {
+    if (isNullOrUndefined(topicDisc)) {
       throw new Error("topic not joined");
     }
 
@@ -140,7 +140,7 @@ export class Peer {
   }
 
   _unhandleRPCTopic(topic) {
-    if (isNullOrUndefiend(this._rpcServer)) {
+    if (isNullOrUndefined(this._rpcServer)) {
       throw new Error("malinitialized instance: rpc server is not defined");
     }
 
@@ -149,7 +149,7 @@ export class Peer {
 
   async broadcast(topic, event) {
     const topicDisc = this._getTopicDiscoveryInfo(topic);
-    if (isNullOrUndefiend(topicDisc)) {
+    if (isNullOrUndefined(topicDisc)) {
       throw new Error("topic not joined");
     }
 
@@ -195,7 +195,7 @@ export class Peer {
           const respRaw = await this.rpc.request(Buffer.from(rpcAddress, "hex"), topic, payload);
           const resp = JSON.parse(respRaw.toString("utf-8"));
 
-          if (isNullOrUndefiend(resp) || (resp && resp.status !== "OK")) {
+          if (isNullOrUndefined(resp) || (resp && resp.status !== "OK")) {
             this.log("error broadcasting to peer", { swarmAddress, rpcAddress });
             return {
               rpcAddress,
@@ -233,14 +233,14 @@ export class Peer {
   }
 
   publicKey() {
-    if (!isNullOrUndefiend(this._rpcServer)) {
+    if (!isNullOrUndefined(this._rpcServer)) {
       return this._rpcServer.publicKey;
     }
     return null;
   }
 
   swarmPublicKey() {
-    if (!isNullOrUndefiend(this.swarm)) {
+    if (!isNullOrUndefined(this.swarm)) {
       return this.swarm.keyPair.publicKey;
     }
     return null;
@@ -274,8 +274,4 @@ export class Peer {
         console.log("closing", conn.remotePublicKey.toString("hex"));
     }
   }
-}
-
-function isNullOrUndefiend(value) {
-  return value === null || value === undefined;
 }

@@ -2,6 +2,7 @@ import test, { configure, solo } from "brittle";
 import createTestnet from "hyperdht/testnet.js";
 import { createPeer } from "#core/peer";
 import { getSeed, createRPC, createDHT } from "#core/utils";
+import { wait } from "./testutils.js";
 
 configure({
   timeout: 3 * 60 * 1000, // 3 minutes
@@ -194,8 +195,4 @@ async function createPeers(count, { bootstrap }) {
   }
 
   return peers;
-}
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

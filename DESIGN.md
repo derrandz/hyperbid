@@ -205,7 +205,8 @@ We will test the implementation by creating a network of peers and having them o
 #### PubSub
 
 PubSub over Hyperswarm in this implementation is acheived using hyperswarm/rpc. We simply define a method for each topic we want to listen to, and when we want to broadcast an event to a topic, we call the method with the event as the payload.
-The reason behind leveraging RPC and not simply performing swarm topic lookups, and performing broadcasts by "iterating" over open connections of a given topic, and writing to it our specific event, is that the latter requires some "wire" codec to be implemented, some sort of "protocol" to be defined, and RPC already does all that for us (_for the purposes of this task, it's sufficient_)
+The reason behind leveraging RPC and not simply performing swarm or dht topic lookups, and performing broadcasts by "iterating" over open connections of a given topic, and writing to it our specific event, is that the latter requires some "wire" codec to be implemented, some sort of "protocol" to be defined, and RPC already does all that for us (_for the purposes of this task, it's sufficient_)
+If hyperswarm were to offer this functionality natively, I'd rely on dht.lookup and dht.announce (_as I think is already the case I think_) and add some "pubsub" wire protocol to have a binary structure for pubsub messages over connections (_broadcast, join and leave_) + multiplexing over a given dht topic's connections etc...
 
 ### Conclusion
 

@@ -1,4 +1,6 @@
 import { createDHT, createSwarm, createRPC, getSeed, to32ByteBuffer, isNullOrUndefined } from "#core/utils";
+import { createDatabase } from "#core/db";
+import ram from "random-access-memory";
 
 export async function createPeer({ port, seed, bootstrap }, opts) {
   if (seed === null || typeof seed === undefined || seed === "") {
@@ -7,7 +9,18 @@ export async function createPeer({ port, seed, bootstrap }, opts) {
   const dht = await createDHT({ port, seed });
   const swarm = createSwarm(seed, dht);
   const rpc = createRPC(seed, dht);
-  const db = null;
+  const dbSwarm = createSwarm(); // create a new swarm for the db to have separate connections for replicating the db
+  // TODO: think about using persistent storage for the db later
+  const db = createDatabase(dbSwarm, ram, null, {
+    hyperbee: {
+      keyEncoding: "utf-8",
+      // valueEncoding: "utf-8",
+    },
+    core: {
+      overwrite: true,
+    },
+    mode: "writer", // will deprecate this, it's a bit of a relic from a previous idea
+  });
 
   return new Peer(dht, swarm, rpc, db, opts);
 }
@@ -19,8 +32,9 @@ export class Peer {
     this.dht = dht;
     this.swarm = swarm;
     this.rpc = rpc;
-    this.db = null;
+    this.db = db;
     this.topics = [];
+    this.methods = [];
     this.log = noop;
     this.rpcPeers = new Map();
 
@@ -62,6 +76,8 @@ export class Peer {
       conn.on("error", (e) => console.error("connection error", conn.remotePublicKey.toString("hex"), e));
     });
 
+    await this.db.start();
+
     this.log("peer started successfully, publicKey=", this.publicKey().toString("hex"));
   }
 
@@ -73,10 +89,15 @@ export class Peer {
       }
     }
 
+    for (let method of this.methods) {
+      await this.unrespond(method);
+    }
+
     this.swarm.removeAllListeners();
     await this._rpcServer.close();
     await this.rpc.destroy();
     await this.dht.destroy();
+    await this.db.stop();
     this.log("peer stopped successfully");
   }
 
@@ -228,8 +249,64 @@ export class Peer {
     );
   }
 
-  syncState() {
-    // TODO
+  async respond(method, handler) {
+    if (isNullOrUndefined(this._rpcServer)) {
+      throw new Error("malinitialized instance: rpc server is not defined");
+    }
+
+    if (this.methods.includes(method)) {
+      throw new Error("method already registered");
+    }
+
+    this._rpcServer.respond(method, async (reqRaw) => {
+      const req = JSON.parse(reqRaw.toString("utf-8"));
+      const data = await handler(req);
+
+      return Buffer.from(
+        JSON.stringify({
+          // TODO: add peer metadata for info maybe?
+          status: "OK",
+          data,
+        }),
+        "utf-8",
+      );
+    });
+
+    this.methods.push(method);
+  }
+
+  async unrespond(method) {
+    if (!this.methods.includes(method)) {
+      throw new Error("method not registered");
+    }
+
+    await this._rpcServer.unrespond(method);
+    this.methods.splice(this.methods.indexOf(method), 1);
+  }
+
+  async request(peer, method, data) {
+    if (isNullOrUndefined(this._rpcServer)) {
+      throw new Error("malinitialized instance: rpc server is not defined");
+    }
+
+    const respRaw = await this._rpcServer.request(
+      Buffer.from(peer, "hex"),
+      method,
+      Buffer.from(JSON.stringify(data), "utf-8"),
+    );
+
+    return JSON.parse(respRaw.toString("utf-8"));
+  }
+
+  async syncState() {
+    await this.db.sync();
+  }
+
+  /*
+   * Returns the current state height
+   */
+  stateHeight() {
+    return this.db.height();
   }
 
   publicKey() {

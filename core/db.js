@@ -23,7 +23,6 @@ class Database {
   }
 
   _replicateStore(conn) {
-    console.log("replicating store", conn);
     this.bee.replicate(conn);
   }
 
@@ -34,15 +33,15 @@ class Database {
   }
 
   async sync() {
+    this.swarm.on("connection", this._replicateStore.bind(this));
+
     await this.swarm
       .join(this.core.discoveryKey)
       .flushed()
       .then(() => {
-        console.log("joined");
+        console.log("joined", this.core.discoveryKey.toString("hex"));
       });
     await this.swarm.flush();
-
-    this.swarm.on("connection", this._replicateStore.bind(this));
 
     let markDiscoveryDone = () => {};
     if (this.mode === "reader") {
@@ -66,14 +65,17 @@ class Database {
     this.keys.discoveryKey = null;
     this.keys.coreKey = null;
   }
+
+  height() {
+    this.core.length;
+  }
+
+  address() {
+    this.keys.coreKey.toString("hex");
+  }
 }
 
 export function createDatabase(swarm, path, dbNameOrKey, opts) {
-  console.log({
-    swarm,
-    path,
-    dbNameOrKey,
-  });
   const { core } = createCore(path, dbNameOrKey, {
     core: opts.core,
   });

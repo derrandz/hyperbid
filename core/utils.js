@@ -42,7 +42,6 @@ function createRPC(seed, dht) {
 }
 
 function createCore(path, dbNameOrKey, opts) {
-  console.log({ path, opts, dbNameOrKey });
   const key = dbNameOrKey ? (opts.mode === "writer" ? dbNameOrKey : b4a.from(dbNameOrKey, "hex")) : dbNameOrKey;
   const core = key ? new Hypercore(path, key, opts.core) : new Hypercore(path, opts.core);
   return {

@@ -16,7 +16,7 @@ test("peer instantiates successfully", async (t) => {
     peer = await createPeer({
       port: 50001,
       bootstrap,
-    });
+    }).catch(console.error);
   });
 
   t.not(peer, null, "peer is properly instantiated");

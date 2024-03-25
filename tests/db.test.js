@@ -7,17 +7,10 @@ import ram from "random-access-memory";
 
 test("database instantiates successfully", async (t) => {
   let db = null;
-  const {
-    nodes: [dht],
-  } = await createTestnet(1);
   const key = get32ByteKey().toString("hex");
 
-  t.execution(() => {
-    try {
-      db = createDB(dht, key, "writer");
-    } catch (e) {
-      console.error(e);
-    }
+  await t.execution(() => {
+    db = createDB(key, "writer");
   }, "database instantiated successfully");
 
   t.not(db, null, "database is properly instantiated");
@@ -29,13 +22,9 @@ test("database instantiates successfully", async (t) => {
 });
 
 test("database starts and stops successfully", async (t) => {
-  const { bootstrap } = await createTestnet(1);
   const key = get32ByteKey().toString("hex");
 
-  const db = await createDB(key, "writer", {
-    port: 49771,
-    bootstrap,
-  });
+  const db = await createDB(key, "writer");
 
   await t.execution(async () => {
     await db.start();
@@ -50,27 +39,24 @@ test("database starts and stops successfully", async (t) => {
 });
 
 test("database syncs/replicates successfully", async (t) => {
-  const { bootstrap } = await createTestnet(1);
-  const key = get32ByteKey().toString("hex");
-
-  const maindb = await createDB(null, "writer", {
-    port: 49772,
-    bootstrap,
-  });
+  const maindb = createDB(null, "writer");
   await maindb.start();
   await maindb.sync();
+
+  await wait(500);
+
   t.not(maindb.keys.coreKey, null, "db is syncing properly");
 
   console.log("main", {
     discoveryKey: maindb.keys.discoveryKey.toString("hex"),
     coreKey: maindb.keys.coreKey.toString("hex"),
   });
-  const replica = await createDB(maindb.keys.coreKey, "reader", {
-    port: 49773,
-    bootstrap,
-  });
+
+  const replica = createDB(maindb.keys.coreKey, "writer");
   await replica.start();
   await replica.sync();
+
+  await wait(500);
 
   console.log("replica", {
     discoveryKey: replica.keys.discoveryKey.toString("hex"),
@@ -78,27 +64,35 @@ test("database syncs/replicates successfully", async (t) => {
   });
 
   // failing: says that session is not writable, weird
-  await maindb.bee.put("item", {
-    id: 1,
-  });
+  await maindb.bee.put(
+    "item",
+    Buffer.from(
+      JSON.stringify({
+        id: 1,
+      }),
+    ),
+  );
 
-  await wait(1000);
+  await wait(500);
 
-  const item = await replica.bee.get("item");
-  console.log({ item });
+  const response = await replica.bee.get("item");
+  const key = response.key;
+  const item = JSON.parse(response.value.toString());
+
+  t.is(key, "item", "replica has item from maindb");
+  t.is(item.id, 1, "replica has item from maindb");
 });
 
-async function createDB(nameOrKey, mode, { port, bootstrap }) {
-  const seed = getSeed();
-  const dht = await createDHT({ port, seed, bootstrap });
-  const swarm = createSwarm(seed, dht);
+function createDB(nameOrKey, mode) {
+  const swarm = createSwarm();
   const db = createDatabase(swarm, ram, nameOrKey, {
     hyperbee: {
       keyEncoding: "utf-8",
-      valueEncoding: "utf-8",
+      // valueEncoding: "utf-8",
     },
     core: {
       overwrite: true,
+      writable: true,
     },
     mode,
   });
